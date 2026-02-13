@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+
+import java.util.List;
 
 @Entity
 @Getter
@@ -30,8 +33,8 @@ public class Post {
     @Column(nullable = false)
     private PostCategory category;
 
-    @Enumerated(EnumType.STRING)
-    private Part recruitPart;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostPart> recruitedParts = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -45,6 +48,8 @@ public class Post {
 
     @Column(nullable = false)
     private String contactValue;
+
+    private String writerEmail;
 
     // ✅ [수정 1] 상시 모집일 수 있으므로 nullable = true (또는 생략)
     @Column(nullable = true) 
@@ -77,7 +82,6 @@ public class Post {
         this.title = title;
         this.content = content;
         this.category = category;
-        this.recruitPart = recruitPart;
         this.region = region;
         this.fee = fee;
         this.contactType = contactType;
@@ -115,5 +119,9 @@ public class Post {
 
     public void closeRecruitment() {
         this.status = PostStatus.COMPLETED;
+    }
+    public void addPart(PostPart postPart) {
+        this.recruitedParts.add(postPart);
+        postPart.setPost(this);
     }
 }

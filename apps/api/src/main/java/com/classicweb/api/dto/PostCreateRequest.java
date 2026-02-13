@@ -9,7 +9,10 @@ import com.fasterxml.jackson.annotation.JsonFormat; // ★ 추가
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.time.LocalDateTime;
 
 @Data
@@ -24,7 +27,14 @@ public class PostCreateRequest {
     @NotNull(message = "카테고리를 선택해주세요.")
     private PostCategory category;
 
-    private Part recruitPart; // (Nullable)
+    private List<RecruitPartDto> parts;
+
+    @Getter
+    @NoArgsConstructor
+    public static class RecruitPartDto {
+        private Part part;
+        private int count;
+    }
 
     @NotNull(message = "지역을 선택해주세요.")
     private Region region;

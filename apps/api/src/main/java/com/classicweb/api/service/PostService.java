@@ -3,6 +3,7 @@ package com.classicweb.api.service;
 import com.classicweb.api.domain.Part; // ★ import 추가
 import com.classicweb.api.domain.Post;
 import com.classicweb.api.domain.PostCategory; // ★ import 추가
+import com.classicweb.api.domain.PostPart;
 import com.classicweb.api.domain.User;
 import com.classicweb.api.dto.PostCreateRequest;
 import com.classicweb.api.repository.PostRepository;
@@ -24,38 +25,41 @@ public class PostService {
 
     // 게시글 작성
     @Transactional
-    public Long createPost(String userEmail, PostCreateRequest request) {
-        // ... (기존 작성 코드 유지) ...
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
+    public Long createPost(String email, PostCreateRequest request) {
+        // 1. 게시글 본체 생성
         Post post = Post.builder()
-                .user(user)
                 .title(request.getTitle())
                 .content(request.getContent())
+                //.writerEmail(email)
                 .category(request.getCategory())
-                .recruitPart(request.getRecruitPart())
                 .region(request.getRegion())
-                .fee(request.getFee())
-                .contactType(request.getContactType())
-                .contactValue(request.getContactValue())
-                .eventDate(request.getEventDate()) 
-                .targetCount(request.getTargetCount()) 
-                .isUrgent(request.getIsUrgent() != null && request.getIsUrgent()) // getIsUrgent 오타 수정
                 .build();
+
+        // 2. 모집 악기들(PostPart) 생성 및 연결
+        if (request.getParts() != null) {
+            for (PostCreateRequest.RecruitPartDto partDto : request.getParts()) {
+                PostPart postPart = PostPart.builder()
+                        .part(partDto.getPart())
+                        .count(partDto.getCount())
+                        .build();
+                post.addPart(postPart); // Post에 추가 (Cascade로 자동 저장됨)
+            }
+        }
 
         return postRepository.save(post).getId();
     }
 
-    // ★ [누락된 부분] 리스트 조회 메서드 추가!
+// 목록 조회 로직 수정
     public List<Post> getPosts(Part part, PostCategory category) {
-        if (part != null) {
-            return postRepository.findByRecruitPartOrderByCreatedAtDesc(part);
+        if (part != null && category != null) {
+            return postRepository.findDistinctByRecruitedParts_PartAndCategory(part, category);
+        } else if (part != null) {
+            return postRepository.findDistinctByRecruitedParts_Part(part);
+        } else if (category != null) {
+            return postRepository.findByCategory(category);
+        } else {
+            return postRepository.findAll();
         }
-        if (category != null) {
-            return postRepository.findByCategoryOrderByCreatedAtDesc(category);
-        }
-        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
     // 단건 조회
@@ -68,6 +72,6 @@ public class PostService {
         User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new IllegalArgumentException("유저가 없습니다."));
 
-                    return postRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+                    return postRepository.findByWriterEmailOrderByCreatedAtDesc(userEmail);
     }
 }
